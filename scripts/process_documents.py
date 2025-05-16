@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-Document processor script for the Query Support Management System.
-This script processes documents in subject folders and extracts keywords.
+Robust document processor for Query Support Management System.
+Each folder in 'subjects/' is a subject. Extracts keywords from PDFs and writes a single keywords.json file.
+Handles empty folders, missing PDFs, and folder deletions gracefully.
 """
 
 import os
@@ -53,36 +54,25 @@ def extract_text_from_pdf(pdf_path):
         with open(pdf_path, 'rb') as file:
             reader = PyPDF2.PdfReader(file)
             for page_num in range(len(reader.pages)):
-                text += reader.pages[page_num].extract_text()
+                page_text = reader.pages[page_num].extract_text()
+                if page_text:
+                    text += page_text
     except Exception as e:
         print(f"Error extracting text from {pdf_path}: {e}")
     return text
 
 def process_text(text):
     """Process extracted text to get important keywords."""
-    # Tokenize
     tokens = word_tokenize(text.lower())
-    
-    # Remove stopwords and punctuation
     stop_words = set(stopwords.words('english'))
     tokens = [word for word in tokens if word.isalnum() and word not in stop_words and len(word) > 2]
-    
-    # Stem words
     stemmer = PorterStemmer()
     stemmed_tokens = [stemmer.stem(word) for word in tokens]
-    
-    # Count frequency
     word_freq = {}
     for word in stemmed_tokens:
-        if word in word_freq:
-            word_freq[word] += 1
-        else:
-            word_freq[word] = 1
-    
-    # Sort by frequency and get top keywords
+        word_freq[word] = word_freq.get(word, 0) + 1
     sorted_words = sorted(word_freq.items(), key=lambda x: x[1], reverse=True)
     top_keywords = [word for word, freq in sorted_words[:50]]
-    
     return top_keywords
 
 def ensure_directory(directory):
@@ -108,6 +98,9 @@ def process_subject_directory(subject_dir):
     
     subject_keywords = set()
     pdf_files = [f for f in os.listdir(subject_dir) if f.lower().endswith('.pdf')]
+    if not pdf_files:
+        print(f"  No PDF files found in {subject_name}. Skipping.")
+        return []
     
     for pdf_file in pdf_files:
         pdf_path = os.path.join(subject_dir, pdf_file)
@@ -115,6 +108,9 @@ def process_subject_directory(subject_dir):
         
         # Extract and process text
         text = extract_text_from_pdf(pdf_path)
+        if not text.strip():
+            print(f"    No extractable text in {pdf_file}. Skipping.")
+            continue
         keywords = process_text(text)
         subject_keywords.update(keywords)
         
@@ -132,13 +128,15 @@ def main():
     ensure_directory(SUBJECT_DIR)
     ensure_directory(os.path.join(UPLOADS_DIR, "subjects"))
     
-    # Process each subject directory
+    # Remove subjects from keywords.json if their folder is deleted
+    existing_subjects = set(os.listdir(SUBJECT_DIR))
     subject_keywords = {}
     for item in os.listdir(SUBJECT_DIR):
         subject_dir = os.path.join(SUBJECT_DIR, item)
         if os.path.isdir(subject_dir):
             keywords = process_subject_directory(subject_dir)
-            subject_keywords[item] = keywords
+            if keywords:
+                subject_keywords[item] = keywords
     
     # Save keywords to JSON file
     with open(KEYWORDS_FILE, 'w') as f:

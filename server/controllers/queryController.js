@@ -35,7 +35,7 @@ const createQuery = asyncHandler(async (req, res) => {
     status: 'pending',
   });
 
-  // If it's an academic query, use NLP to classify and find appropriate teacher
+  // Step 1: Try to match query with subject keywords
   if (queryCategory === 'academics') {
     try {
       // Get all subjects to classify against
@@ -65,30 +65,33 @@ const createQuery = asyncHandler(async (req, res) => {
             // For simplicity, assign to first matching teacher
             query.teacher = eligibleTeachers[0]._id;
             query.status = 'assigned';
+            await query.save();
+            return res.status(201).json(query);
           }
         }
       }
     } catch (error) {
       console.error('Error in NLP classification:', error);
-      // Continue with query creation even if classification fails
-    }
-  } else {
-    // For non-academic queries, find teacher with matching category
-    const eligibleTeachers = await User.find({
-      role: 'teacher',
-      categories: queryCategory
-    });
-    
-    if (eligibleTeachers.length > 0) {
-      // For simplicity, assign to first matching teacher
-      query.teacher = eligibleTeachers[0]._id;
-      query.status = 'assigned';
     }
   }
-  
-  // Save the updated query with assigned teacher (if any)
-  await query.save();
 
+  // Step 2: If no subject match or no teacher found, try to find CR
+  const crKey = `${student.department}-${student.semester}-${student.section}`;
+  const cr = await User.findOne({
+    role: 'teacher',
+    'crMappings': crKey
+  });
+
+  if (cr) {
+    query.teacher = cr._id;
+    query.status = 'assigned';
+    await query.save();
+    return res.status(201).json(query);
+  }
+
+  // Step 3: If no CR found, leave as unassigned
+  query.status = 'unassigned';
+  await query.save();
   res.status(201).json(query);
 });
 

@@ -141,21 +141,21 @@ function TeacherQueryItem({
             <h4 className="text-lg font-medium mb-2 flex items-center gap-2">
               <FaReply /> Response
             </h4>
-            <form onSubmit={handleSubmitResponse}>
-              <textarea
-                value={responseText}
-                onChange={(e) => setResponseText(e.target.value)}
+              <form onSubmit={handleSubmitResponse}>
+                <textarea
+                  value={responseText}
+                  onChange={(e) => setResponseText(e.target.value)}
                 placeholder="Type your response..."
                 className="w-full min-h-[100px] px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-              />
+                />
               <button
                 type="submit"
                 className="mt-2 px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
               >
-                Submit Response
-              </button>
-            </form>
-          </div>
+                  Submit Response
+                </button>
+              </form>
+            </div>
         </div>
       )}
     </div>

@@ -12,7 +12,6 @@ import {
   FaExclamationCircle,
   FaPlus,
 } from 'react-icons/fa';
-import { SUBJECTS, getAllSubjects } from '../constants/subjects';
 
 function TeacherDashboard() {
   const [queries, setQueries] = useState([]);
@@ -28,12 +27,19 @@ function TeacherDashboard() {
   const [selectedSubject, setSelectedSubject] = useState('');
   const [teachingSubjects, setTeachingSubjects] = useState([]);
 
+  // CR management state
+  const [department, setDepartment] = useState('');
+  const [semester, setSemester] = useState('');
+  const [section, setSection] = useState('');
+  const [crMap, setCrMap] = useState({});
+
   const { user } = useSelector((state) => state.auth);
 
   useEffect(() => {
     fetchQueries();
     fetchSubjects();
     fetchTeachingSubjects();
+    fetchCrMap();
   }, []);
 
   useEffect(() => {
@@ -89,30 +95,14 @@ function TeacherDashboard() {
     setIsLoading(false);
   };
 
-  const filterQueries = () => {
-    let filtered = [...queries];
-
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(query => query.status === statusFilter);
+  const fetchCrMap = async () => {
+    try {
+      const response = await axios.get('/api/subjects/classes');
+      setCrMap(response.data || {});
+    } catch (error) {
+      toast.error('Error fetching CR mappings');
+      setCrMap({});
     }
-
-    if (subjectFilter !== 'all') {
-      filtered = filtered.filter(query => 
-        query.subject && query.subject._id === subjectFilter
-      );
-    }
-
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(
-        query =>
-          query.text.toLowerCase().includes(term) ||
-          (query.student && query.student.name && query.student.name.toLowerCase().includes(term)) ||
-          (query.student && query.student.srn && query.student.srn.toLowerCase().includes(term))
-      );
-    }
-
-    setFilteredQueries(filtered);
   };
 
   const handleAddSubject = async (e) => {
@@ -149,6 +139,29 @@ function TeacherDashboard() {
       toast.success('Subject added successfully');
     } catch (error) {
       toast.error('Error adding subject');
+    }
+  };
+
+  const handleAddCr = async (e) => {
+    e.preventDefault();
+    if (!department || !semester || !section) {
+      toast.error('Please enter department, semester, and section');
+      return;
+    }
+    try {
+      const response = await axios.post('/api/subjects/classes', {
+        department,
+        semester,
+        section,
+        teacherId: user._id,
+      });
+      setCrMap(response.data.crMap);
+      setDepartment('');
+      setSemester('');
+      setSection('');
+      toast.success('You are now the CR for this class/department/section!');
+    } catch (error) {
+      toast.error('Error setting CR');
     }
   };
 
@@ -200,6 +213,32 @@ function TeacherDashboard() {
     }
   };
 
+  const filterQueries = () => {
+    let filtered = [...queries];
+
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(query => query.status === statusFilter);
+    }
+
+    if (subjectFilter !== 'all') {
+      filtered = filtered.filter(query => 
+        query.subject && query.subject._id === subjectFilter
+      );
+    }
+
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(
+        query =>
+          query.text.toLowerCase().includes(term) ||
+          (query.student && query.student.name && query.student.name.toLowerCase().includes(term)) ||
+          (query.student && query.student.srn && query.student.srn.toLowerCase().includes(term))
+      );
+    }
+
+    setFilteredQueries(filtered);
+  };
+
   if (isLoading) {
     return <Spinner />;
   }
@@ -210,6 +249,63 @@ function TeacherDashboard() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Teacher Dashboard</h1>
           <p className="mt-2 text-gray-600">Welcome, {user.name}</p>
+        </div>
+
+        {/* CR Management Section */}
+        <div className="bg-white rounded-lg shadow-md mb-8">
+          <div className="p-6">
+            <h2 className="text-2xl font-bold mb-6">Class Representative (CR) Management</h2>
+            <form onSubmit={handleAddCr} className="mb-4 flex flex-col md:flex-row gap-4 items-end">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Department</label>
+                <select
+                  value={department}
+                  onChange={e => setDepartment(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                  required
+                >
+                  <option value="">Select Department</option>
+                  <option value="EK">CSSE (EK)</option>
+                  <option value="EQ">ISE (EQ)</option>
+                  <option value="EF">CSE (EF)</option>
+                  <option value="EH">AIDS (EH)</option>
+                  <option value="EJ">CS & IT (EJ)</option>
+                  <option value="EA">AIML (EA)</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Semester</label>
+                <select
+                  value={semester}
+                  onChange={e => setSemester(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                  required
+                >
+                  <option value="">Select Semester</option>
+                  {[1,2,3,4,5,6,7,8].map((sem) => (
+                    <option key={sem} value={sem}>{sem}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Section</label>
+                <input
+                  type="text"
+                  value={section}
+                  onChange={e => setSection(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                  placeholder="e.g., A"
+                  required
+                />
+              </div>
+              <button
+                type="submit"
+                className="bg-primary text-white px-6 py-2 rounded-md hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+              >
+                Become CR
+              </button>
+            </form>
+          </div>
         </div>
 
         {/* Subject Management Section */}
@@ -249,14 +345,14 @@ function TeacherDashboard() {
                     required
                   >
                     <option value="">Select Subject</option>
-                    {getAllSubjects().map((subject) => (
-                      <option key={subject.code} value={subject.code}>
-                        {subject.name} ({subject.code})
+                    {subjects.map((subject) => (
+                      <option key={subject} value={subject}>
+                        {subject}
                       </option>
                     ))}
                   </select>
                 </div>
-                
+
                 <div className="flex items-end">
                   <button
                     type="submit"
@@ -298,22 +394,11 @@ function TeacherDashboard() {
         </div>
 
         {/* Queries Section */}
-        <div className="bg-white rounded-lg shadow-md mb-8">
+        <div className="bg-white rounded-lg shadow-md">
           <div className="p-6">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-              <div className="flex-1">
-                <div className="relative">
-                  <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Search queries..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
-                </div>
-              </div>
-
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+              <h2 className="text-2xl font-bold">Assigned Queries</h2>
+              
               <div className="flex flex-col sm:flex-row gap-4">
                 <div className="flex items-center gap-2">
                   <FaFilter className="text-gray-500" />
@@ -394,7 +479,6 @@ function TeacherDashboard() {
 
             {/* Queries List */}
             <div>
-              <h2 className="text-xl font-bold mb-4">Assigned Queries</h2>
               {filteredQueries.length > 0 ? (
                 <div className="space-y-4">
                   {filteredQueries.map((query) => (

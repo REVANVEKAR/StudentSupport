@@ -67,7 +67,7 @@ function Login() {
         <div>
           <h1 className="text-3xl font-bold text-center text-gray-900 flex items-center justify-center">
             <FaSignInAlt className="mr-2" /> Student Sign in
-          </h1>
+        </h1>
           <p className="mt-2 text-center text-gray-600">Login to your account</p>
         </div>
 
@@ -78,15 +78,15 @@ function Login() {
                 Email ID
               </label>
               <div className="mt-1 relative">
-                <input
-                  type="text"
-                  id="email"
-                  name="email"
-                  value={email}
-                  placeholder="Enter your email"
-                  onChange={onChange}
+              <input
+                type="text"
+                id="email"
+                name="email"
+                value={email}
+                placeholder="Enter your email"
+                onChange={onChange}
                   className="appearance-none block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary focus:border-primary"
-                />
+              />
                 <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">
                   @reva.edu.in
                 </span>
@@ -98,15 +98,15 @@ function Login() {
                 Password
               </label>
               <div className="mt-1">
-                <input
-                  type="password"
-                  id="password"
-                  name="password"
-                  value={password}
-                  placeholder="Enter password"
-                  onChange={onChange}
+            <input
+              type="password"
+              id="password"
+              name="password"
+              value={password}
+              placeholder="Enter password"
+              onChange={onChange}
                   className="appearance-none block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary focus:border-primary"
-                />
+            />
               </div>
               <p className="mt-2 text-sm text-primary cursor-pointer hover:underline">
                 Forgot Password?
